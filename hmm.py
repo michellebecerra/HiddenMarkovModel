@@ -7,12 +7,20 @@ import random
 import numpy as np
 from scipy.spatial import distance
 import collections
-
 # ==============Hidden Markov Models using Viterbi Algorithm==================================
-trans_p = {}
+#Your task is to use a Hidden Markov Model to figure out the most likely trajectory of a robot in this
+#grid-world. Assume that the initial position of the robot has a uniform prior over all free cells. In each
+#time-step, the robot moves to one of its four neighboring free cells chosen uniformly at random.
+
+
+#Source: https://github.com/nickbirnberg/HMM-localisation
+# https://sandipanweb.wordpress.com/2016/11/12/robot-localization-with-hmm-as-probabilistic-graphical-model/
+
 #Parse the data 
+trans_p = {}
 def main():
 	
+
 	states = []
 	#towers = [] #we know tower locations so no need to store
 	obs = []
@@ -100,8 +108,6 @@ def emit_p(states):
 
 	return [emit1_p,emit2_p,emit3_p,emit4_p]
 
-
-
 def eucl_dist(coord):
 	tower1 = np.array((0,0))
 	tower2 = np.array((0,9))
@@ -144,7 +150,6 @@ def neighbors(i, j, world):
 		if world[i][j+1] == 1:
 			right = True
 			total += 1.0
-
 	#Down
 	if  i + 1 <= n:
 		if world[i+1][j] == 1:
@@ -171,7 +176,6 @@ def neighbors(i, j, world):
 		trans_p[key][str(i) + str(j+1)] = (float(1.0/total))
 	if(down):
 		trans_p[key][str(i+1) + str(j)] = (float(1.0/total))
-			
 
 	print collections.OrderedDict(sorted(trans_p.items()))
 
