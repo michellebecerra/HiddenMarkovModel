@@ -9,7 +9,7 @@ from scipy.spatial import distance
 import collections
 
 # ==============Hidden Markov Models using Viterbi Algorithm==================================
-
+trans_p = {}
 #Parse the data 
 def main():
 	
@@ -30,6 +30,7 @@ def main():
 	print "states", states
 
 	[start_p,emit1_p,emit2_p,emit3_p,emit4_p] = initialize(states)
+	print trans_p
 
 def initialize(states):
 	start_p = np.zeros(states.shape)
@@ -39,6 +40,7 @@ def initialize(states):
 			#Create start_p
 			if(states[i][j] == 1):
 				start_p[i][j] = 1.0/87.0
+				neighbors(i,j,states)
 			else:
 				start_p[i][j] = 0.0
 	
@@ -66,22 +68,22 @@ def emit_p(states):
 				range4 =  np.array([])
 
 			# print "range1,range2,range3,range4", len(range1),len(range2),len(range3),len(range4)
-			print "len(range1)", len(range1)
+			# print "len(range1)", len(range1)
 			if len(range1) != 0:
 				emit1_p[str(i)+str(j)] = float(1.0/len(range1))
 			else:
 				emit1_p[str(i)+str(j)] = 0.0
-			print "len(range2)", len(range2)
+			# print "len(range2)", len(range2)
 			if len(range2) != 0:
 				emit2_p[str(i)+str(j)] = float(1.0/len(range2))
 			else:
 				emit2_p[str(i)+str(j)] = 0.0
-			print "len(range3)", len(range3)
+			# print "len(range3)", len(range3)
 			if len(range3) != 0:
 				emit3_p[str(i)+str(j)] = float(1.0/len(range3))
 			else:
 				emit3_p[str(i)+str(j)] = 0.0
-			print "len(range4)", len(range4)
+			# print "len(range4)", len(range4)
 			if len(range4) != 0:
 				emit4_p[str(i)+str(j)] = float(1.0/len(range4))
 			else:
@@ -90,11 +92,11 @@ def emit_p(states):
 	# emit1_p = collections.OrderedDict(sorted(emit1_p.items()))
 	# emit2_p = collections.OrderedDict(sorted(emit2_p.items()))
 	# emit3_p = collections.OrderedDict(sorted(emit3_p.items()))
-	# emit4_p = collections.OrderedDict(sorted(emit4_p.items()))
-	print "emit1_p", collections.OrderedDict(sorted(emit1_p.items()))
-	print "emit2_p", collections.OrderedDict(sorted(emit2_p.items()))
-	print "emit3_p", collections.OrderedDict(sorted(emit3_p.items()))
-	print "emit4_p", collections.OrderedDict(sorted(emit4_p.items()))
+	# # emit4_p = collections.OrderedDict(sorted(emit4_p.items()))
+	# print "emit1_p", collections.OrderedDict(sorted(emit1_p.items()))
+	# print "emit2_p", collections.OrderedDict(sorted(emit2_p.items()))
+	# print "emit3_p", collections.OrderedDict(sorted(emit3_p.items()))
+	# print "emit4_p", collections.OrderedDict(sorted(emit4_p.items()))
 
 	return [emit1_p,emit2_p,emit3_p,emit4_p]
 
@@ -112,6 +114,66 @@ def eucl_dist(coord):
 	d4 = distance.euclidean(tower4,coord)
 
 	return [d1,d2,d3,d4]
+
+#Observed states: Up, down, left, right
+#Transition probabilites: 0.25
+# Noise to towers	
+#Output 
+#def viterbiAlgo():
+def neighbors(i, j, world):
+	global trans_p
+	total = 0.0
+	left = False
+	up = False
+	right = False
+	down = False
+
+	n = len(world) - 1
+	#Left
+	if j - 1 >= 0:
+		if world[i][j-1] == 1:
+			left = True
+			total += 1.0
+	#Up
+	if i - 1 >= 0:
+		if world[i-1][j] == 1:
+			up = True
+			total += 1.0
+	#Right
+	if j + 1 <= n:
+		if world[i][j+1] == 1:
+			right = True
+			total += 1.0
+
+	#Down
+	if  i + 1 <= n:
+		if world[i+1][j] == 1:
+			down = True
+			total += 1.0
+	
+	key = str(i) + str(j)
+	if key not in trans_p:
+		trans_p[key] = {}
+
+
+	for row in range(len(world)):
+		for col in range(len(world)):
+			vals = str(row) + str(col)
+			if vals not in trans_p[key]:
+				trans_p[key][vals] = 0.0
+	
+	if(left):
+		trans_p[key][str(i) + str(j-1)] = (float(1.0/total))
+	if(up):
+		trans_p[key][str(i-1) + str(j)] = (float(1.0/total))
+	if(right):
+		trans_p[key][str(i) + str(j+1)] = 9.9
+		trans_p[key][str(i) + str(j+1)] = (float(1.0/total))
+	if(down):
+		trans_p[key][str(i+1) + str(j)] = (float(1.0/total))
+			
+
+	print collections.OrderedDict(sorted(trans_p.items()))
 
 if __name__ == "__main__":
 	main()
