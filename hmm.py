@@ -25,6 +25,7 @@ def main():
 	#towers = [] #we know tower locations so no need to store
 	obs = []
 	start_p = []
+	emit_p = {}
 	#load states grid into 2-D array
 	with open("hmm-data.txt", 'r') as f:
 		states = [np.array(map(int,line.split())) for line in f.readlines()[2:12]]
@@ -35,32 +36,107 @@ def main():
 		obs = [np.array(map(float,line.split())) for line in f.readlines()[24:35]]
 	obs = np.array(obs)
 	
-	print "states", states
+	# [start_p,emit1_p,emit2_p,emit3_p,emit4_p] = initialize(states)
+	[start_p,emit_p] = initialize(states)
 
-	[start_p,emit1_p,emit2_p,emit3_p,emit4_p] = initialize(states)
-	print trans_p
+	# print "emit_p", obs
+	# print "start_p", start_p
+	# print "trans_p", trans_p
+	hidden_variables = [0 for i in range(100)]
+	index = 0
+	for i in range(len(states)):
+		for j in range(len(states)):
+			string = str(i)+str(j)
+			hidden_variables[index] = string
+			index += 1
+	hidden_variables = np.array(hidden_variables)
+	# print "hidden_variables", hidden_variables
+	obs_towers = ['t1','t2','t3','t4']
+	viterbi(obs_towers, hidden_variables, start_p, trans_p, emit_p)
+	# print trans_p
+def viterbi(obs, states, start_p, trans_p, emit_p):
+	V = [{}]
+	for st in states:
+		V[0][st] = {"prob": start_p[st] * emit_p[st][obs[0]], "prev": None}
+	# print "emit_p[st][obs[0]]*start_p[st]", emit_p['43'][obs[0]]*start_p['43']
+	# print "V", V
+	# Run Viterbi when t > 0
+	for t in range(1, len(obs)):
+		V.append({})
+		for st in states:
+			max_tr_prob = max(V[t-1][prev_st]["prob"]*trans_p[prev_st][st] for prev_st in states)
+			# print trans_p['00']['22']
+			# print "max_tr_prob", max_tr_prob
+			for prev_st in states:
+				# print prev_st
+				if V[t-1][prev_st]["prob"] * trans_p[prev_st][st] == max_tr_prob:
+					max_prob = max_tr_prob * emit_p[st][obs[t]]
+
+					V[t][st] = {"prob": max_prob, "prev": prev_st}
+					print "st", st
+					print "prev_st", prev_st
+					# print V[t][st]["prev"]
+					break
+
+	# for line in dptable(V):
+	# 	print line
+	opt = []
+	# The highest probability
+	max_prob = max(value["prob"] for value in V[-1].values())
+	# print V[-1].values()
+	# print max_prob
+	previous = None
+	# Get most probable state and its backtrack
+	for st, data in V[-1].items():
+		if data["prob"] == max_prob:
+			opt.append(st)
+			previous = st
+			print opt
+			break
+	print len(V[0])
+	print range(len(V) - 2, -1, -1)
+	# Follow the backtrack till the first observation
+	for t in range(len(V) - 2, -1, -1):
+		opt.insert(0, V[t + 1][previous]["prev"])
+		previous = V[t + 1][previous]["prev"]
+		print 'The steps of states are ' + ' '.join(opt) + ' with highest probability of %s' % max_prob
+
+def dptable(V):
+	# Print a table of steps from dictionary
+	yield " ".join(("%12d" % i) for i in range(len(V)))
+	for state in V[0]:
+		yield "%.7s: " % state + " ".join("%.7s" % ("%f" % v[state]["prob"]) for v in V)
+
+	# print "V", V
 
 def initialize(states):
-	start_p = np.zeros(states.shape)
+	start_p = {}
+	emit_p = {}
 	n = len(states)
 	for i in range(n):
 		for j in range(n):
-			#Create start_p
-			if(states[i][j] == 1):
-				start_p[i][j] = 1.0/87.0
-				neighbors(i,j,states)
-			else:
-				start_p[i][j] = 0.0
+			key = str(i)+str(j)
+			neighbors(i,j,states)
+			if key not in start_p:
+				#Create start_p
+				if(states[i][j] == 1):
+					start_p[str(i)+str(j)] = 1.0/87.0
+				else:
+					start_p[str(i)+str(j)] = 0.0
 	
-	[emit1_p,emit2_p,emit3_p,emit4_p] = emit_p(states)
-	return [start_p,emit1_p,emit2_p,emit3_p,emit4_p]
+	# [emit1_p,emit2_p,emit3_p,emit4_p] = emit_p(states)
+	emit_p = create_emit_p(states)
+
+	# return [start_p,emit1_p,emit2_p,emit3_p,emit4_p]
+	return [start_p,emit_p]
 
 
-def emit_p(states):
-	emit1_p = {}
-	emit2_p = {}
-	emit3_p = {}
-	emit4_p = {}
+def create_emit_p(states):
+	emit_p = {}
+	# emit1_p = {}
+	# emit2_p = {}
+	# emit3_p = {}
+	# emit4_p = {}
 	for i in range(len(states)):
 		for j in range(len(states)):
 			if states[i][j] != 0:
@@ -77,25 +153,18 @@ def emit_p(states):
 
 			# print "range1,range2,range3,range4", len(range1),len(range2),len(range3),len(range4)
 			# print "len(range1)", len(range1)
+			key = str(i)+str(j)
+			if key not in emit_p:
+				emit_p[key] = {'t1' : 0.0, 't2': 0.0, 't3' : 0.0, 't4' : 0.0}
+
 			if len(range1) != 0:
-				emit1_p[str(i)+str(j)] = float(1.0/len(range1))
-			else:
-				emit1_p[str(i)+str(j)] = 0.0
-			# print "len(range2)", len(range2)
+				emit_p[key]['t1'] = float(1.0/len(range1))
 			if len(range2) != 0:
-				emit2_p[str(i)+str(j)] = float(1.0/len(range2))
-			else:
-				emit2_p[str(i)+str(j)] = 0.0
-			# print "len(range3)", len(range3)
+				emit_p[key]['t2'] = float(1.0/len(range2))
 			if len(range3) != 0:
-				emit3_p[str(i)+str(j)] = float(1.0/len(range3))
-			else:
-				emit3_p[str(i)+str(j)] = 0.0
-			# print "len(range4)", len(range4)
+				emit_p[key]['t3'] = float(1.0/len(range3))
 			if len(range4) != 0:
-				emit4_p[str(i)+str(j)] = float(1.0/len(range4))
-			else:
-				emit4_p[str(i)+str(j)] = 0.0
+				emit_p[key]['t4'] = float(1.0/len(range4))
 
 	# emit1_p = collections.OrderedDict(sorted(emit1_p.items()))
 	# emit2_p = collections.OrderedDict(sorted(emit2_p.items()))
@@ -106,7 +175,8 @@ def emit_p(states):
 	# print "emit3_p", collections.OrderedDict(sorted(emit3_p.items()))
 	# print "emit4_p", collections.OrderedDict(sorted(emit4_p.items()))
 
-	return [emit1_p,emit2_p,emit3_p,emit4_p]
+	# return [emit1_p,emit2_p,emit3_p,emit4_p]
+	return emit_p
 
 def eucl_dist(coord):
 	tower1 = np.array((0,0))
@@ -176,8 +246,6 @@ def neighbors(i, j, world):
 		trans_p[key][str(i) + str(j+1)] = (float(1.0/total))
 	if(down):
 		trans_p[key][str(i+1) + str(j)] = (float(1.0/total))
-
-	print collections.OrderedDict(sorted(trans_p.items()))
 
 if __name__ == "__main__":
 	main()
