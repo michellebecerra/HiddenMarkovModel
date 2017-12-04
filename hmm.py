@@ -37,69 +37,113 @@ def main():
 	obs = np.array(obs)
 	
 	# [start_p,emit1_p,emit2_p,emit3_p,emit4_p] = initialize(states)
-	[start_p,emit_p] = initialize(states)
-
+	[start_p,emit_p,hidden_variables] = initialize(states, obs)
+	# print "hidden_variables", (hidden_variables)
 	# print "emit_p", obs
 	# print "start_p", start_p
 	# print "trans_p", trans_p
-	hidden_variables = [0 for i in range(100)]
-	index = 0
-	for i in range(len(states)):
-		for j in range(len(states)):
-			string = str(i)+str(j)
-			hidden_variables[index] = string
-			index += 1
-	hidden_variables = np.array(hidden_variables)
-	# print "hidden_variables", hidden_variables
+	# hidden_variables = [0 for i in range(100)]
+	# index = 0
+	# for i in range(len(states)):
+	# 	for j in range(len(states)):
+	# 		string = str(i)+str(j)
+	# 		hidden_variables[index] = string
+	# 		index += 1
 	obs_towers = ['t1','t2','t3','t4']
+	# print "trans_p", trans_p
+	# print "emit_p", emit_p
 	viterbi(obs_towers, hidden_variables, start_p, trans_p, emit_p)
 	# print trans_p
+
 def viterbi(obs, states, start_p, trans_p, emit_p):
 	V = [{}]
-	for st in states:
-		V[0][st] = {"prob": start_p[st] * emit_p[st][obs[0]], "prev": None}
+
+	for point in states[0]:
+		# V[0][point] = {"prob": start_p[point] * emit_p[point][obs[0]], "prev": None}
+		V[0][point] = {"prob": start_p[point], "prev": None}
+		# for st in states:
+	# 	V[0][st] = {"prob": start_p[st] * emit_p[st][obs[0]], "prev": None}
 	# print "emit_p[st][obs[0]]*start_p[st]", emit_p['43'][obs[0]]*start_p['43']
 	# print "V", V
 	# Run Viterbi when t > 0
-	for t in range(1, len(obs)):
+	# max_tr_prob = 0.0
+	for t in range(1, 11):
 		V.append({})
-		for st in states:
-			max_tr_prob = max(V[t-1][prev_st]["prob"]*trans_p[prev_st][st] for prev_st in states)
+		for st in states[t-1]:
+			if st in V[t-1]:
+				for state in states[t-1]:
+					if state in V[t-1]:
+						if state not in V[t]:
+							V[t][state] = {"prob": 0.0, "prev": None}
+							V[t][state]["prob"] = V[t-1][st]["prob"]*trans_p[state][st]
+							V[t][state]["prev"] = st
+						else:
+							if V[t-1][st]["prob"]*trans_p[state][st] > V[t][state]["prob"]:
+								V[t][state]["prob"] = V[t-1][st]["prob"]*trans_p[state][st]
+								V[t][state]["prev"] = st
 			# print trans_p['00']['22']
 			# print "max_tr_prob", max_tr_prob
-			for prev_st in states:
-				# print prev_st
-				if V[t-1][prev_st]["prob"] * trans_p[prev_st][st] == max_tr_prob:
-					max_prob = max_tr_prob * emit_p[st][obs[t]]
+	print "V", V
+	# max_prob = -1
+	# final = ''
+	# level = 10
+	# print V[level]
+	# for item in V[level]:
+	# 	if max_prob < V[level][item]['prob']:
+	# 		max_prob = V[level][item]['prob']
+	# 		final = item
 
-					V[t][st] = {"prob": max_prob, "prev": prev_st}
-					print "st", st
-					print "prev_st", prev_st
-					# print V[t][st]["prev"]
-					break
+	# path = []
+	# path.append(final)
+	# while True:
+	# 	if V[level][final]['prev'] == None:
+	# 		break
+	# 	new_final = V[level][final]['parent']
+	# 	path.append(new_final)
+	# 	level -= 1
+	# 	final = new_final
+	
+	# print('The path is ', path[::-1])
+	# 		for prev_st in states[t]:
+	# 			# print prev_st
+	# 			if prev_st in V[t-1]:
+	# 				if V[t-1][prev_st]["prob"] * trans_p[prev_st][st] == max_tr_prob:
 
-	# for line in dptable(V):
-	# 	print line
-	opt = []
-	# The highest probability
-	max_prob = max(value["prob"] for value in V[-1].values())
+	# 					# max_prob = max(max_tr_prob * emit_p[st][tower] for tower in obs)
+	# 					# max_prob = max(max_tr_prob * emit_p[st][tower] for tower in obs)
+	# 					max_prob = max_tr_prob
+
+	# 					print "max_prob", max_prob
+	# 					V[t][st] = {"prob": max_prob, "prev": prev_st}
+	# 					# print "st", st
+	# 					# print "prev_st", prev_st
+	# 					# print V[t][st]["prev"]v
+	# 					print "V[t][st]", V[t][st]
+	# 					break
+	# print "V", V
+	# # for line in dptable(V):
+	# # 	print line
+	# opt = []
+	# # The highest probability
 	# print V[-1].values()
-	# print max_prob
-	previous = None
-	# Get most probable state and its backtrack
-	for st, data in V[-1].items():
-		if data["prob"] == max_prob:
-			opt.append(st)
-			previous = st
-			print opt
-			break
-	print len(V[0])
-	print range(len(V) - 2, -1, -1)
-	# Follow the backtrack till the first observation
-	for t in range(len(V) - 2, -1, -1):
-		opt.insert(0, V[t + 1][previous]["prev"])
-		previous = V[t + 1][previous]["prev"]
-		print 'The steps of states are ' + ' '.join(opt) + ' with highest probability of %s' % max_prob
+	# max_prob = max(value["prob"] for value in V[-1].values())
+	# # print V[-1].values()
+	# # print max_prob
+	# previous = None
+	# # Get most probable state and its backtrack
+	# for st, data in V[-1].items():
+	# 	if data["prob"] == max_prob:
+	# 		opt.append(st)
+	# 		previous = st
+	# 		# print opt
+	# 		break
+	# print len(V[0])
+	# print range(len(V) - 2, -1, -1)
+	# # Follow the backtrack till the first observation
+	# for t in range(len(V) - 2, -1, -1):
+	# 	opt.insert(0, V[t + 1][previous]["prev"])
+	# 	previous = V[t + 1][previous]["prev"]
+	# 	print 'The steps of states are ' + ' '.join(opt) + ' with highest probability of %s' % max_prob
 
 def dptable(V):
 	# Print a table of steps from dictionary
@@ -109,7 +153,7 @@ def dptable(V):
 
 	# print "V", V
 
-def initialize(states):
+def initialize(states, obs):
 	start_p = {}
 	emit_p = {}
 	n = len(states)
@@ -125,34 +169,48 @@ def initialize(states):
 					start_p[str(i)+str(j)] = 0.0
 	
 	# [emit1_p,emit2_p,emit3_p,emit4_p] = emit_p(states)
-	emit_p = create_emit_p(states)
+	[emit_p, hidden_variables] = create_emit_p(states, obs)
 
 	# return [start_p,emit1_p,emit2_p,emit3_p,emit4_p]
-	return [start_p,emit_p]
+	return [start_p,emit_p,hidden_variables]
 
 
-def create_emit_p(states):
+def create_emit_p(states, obs):
 	emit_p = {}
+	hidden_variables = {}
+	d1 = 0.0
+	d2 = 0.0
+	d3 = 0.0
+	d4 = 0.0
 	# emit1_p = {}
 	# emit2_p = {}
 	# emit3_p = {}
 	# emit4_p = {}
+	for init in range(11):
+		hidden_variables[init] = []
+
 	for i in range(len(states)):
 		for j in range(len(states)):
+			# print hidden_variables
 			if states[i][j] != 0:
 				[d1,d2,d3,d4] = eucl_dist(np.array((i,j)))
 				range1 =  np.arange(0.7*d1, 1.3*d1, 0.1)
 				range2 =  np.arange(0.7*d2, 1.3*d2, 0.1)
 				range3 =  np.arange(0.7*d3, 1.3*d3, 0.1)
 				range4 =  np.arange(0.7*d4, 1.3*d4, 0.1)
+
+				#eliminate states based on noisy distances to towers
+				val = str(i)+str(j)
+				for row in range(11):
+					if 0.7*d1 <= obs[row][0] <= 1.3*d1 and 0.7*d2 <= obs[row][1] <= 1.3*d2 and 0.7*d3 <= obs[row][2] <= 1.3*d3 and 0.7*d4 <= obs[row][3] <= 1.3*d4:
+						hidden_variables[row].append(val)
 			else:
 				range1 =  np.array([])
 				range2 =  np.array([])
 				range3 =  np.array([])
 				range4 =  np.array([])
 
-			# print "range1,range2,range3,range4", len(range1),len(range2),len(range3),len(range4)
-			# print "len(range1)", len(range1)
+
 			key = str(i)+str(j)
 			if key not in emit_p:
 				emit_p[key] = {'t1' : 0.0, 't2': 0.0, 't3' : 0.0, 't4' : 0.0}
@@ -166,17 +224,7 @@ def create_emit_p(states):
 			if len(range4) != 0:
 				emit_p[key]['t4'] = float(1.0/len(range4))
 
-	# emit1_p = collections.OrderedDict(sorted(emit1_p.items()))
-	# emit2_p = collections.OrderedDict(sorted(emit2_p.items()))
-	# emit3_p = collections.OrderedDict(sorted(emit3_p.items()))
-	# # emit4_p = collections.OrderedDict(sorted(emit4_p.items()))
-	# print "emit1_p", collections.OrderedDict(sorted(emit1_p.items()))
-	# print "emit2_p", collections.OrderedDict(sorted(emit2_p.items()))
-	# print "emit3_p", collections.OrderedDict(sorted(emit3_p.items()))
-	# print "emit4_p", collections.OrderedDict(sorted(emit4_p.items()))
-
-	# return [emit1_p,emit2_p,emit3_p,emit4_p]
-	return emit_p
+	return [emit_p, hidden_variables]
 
 def eucl_dist(coord):
 	tower1 = np.array((0,0))
