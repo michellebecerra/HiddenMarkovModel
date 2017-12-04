@@ -7,22 +7,16 @@ import random
 import numpy as np
 from scipy.spatial import distance
 import collections
+
 # ==============Hidden Markov Models using Viterbi Algorithm==================================
 #Your task is to use a Hidden Markov Model to figure out the most likely trajectory of a robot in this
 #grid-world. Assume that the initial position of the robot has a uniform prior over all free cells. In each
 #time-step, the robot moves to one of its four neighboring free cells chosen uniformly at random.
 
-
-#Source: https://github.com/nickbirnberg/HMM-localisation
-# https://sandipanweb.wordpress.com/2016/11/12/robot-localization-with-hmm-as-probabilistic-graphical-model/
-
 #Parse the data 
-trans_p = {}
+trans_p = collections.OrderedDict({})
 def main():
-	
-
 	states = []
-	#towers = [] #we know tower locations so no need to store
 	obs = []
 	start_p = []
 	emit_p = {}
@@ -36,43 +30,25 @@ def main():
 		obs = [np.array(map(float,line.split())) for line in f.readlines()[24:35]]
 	obs = np.array(obs)
 	
-	# [start_p,emit1_p,emit2_p,emit3_p,emit4_p] = initialize(states)
 	[start_p,emit_p,hidden_variables] = initialize(states, obs)
-	# print "hidden_variables", (hidden_variables)
-	# print "emit_p", obs
-	# print "start_p", start_p
-	# print "trans_p", trans_p
-	# hidden_variables = [0 for i in range(100)]
-	# index = 0
-	# for i in range(len(states)):
-	# 	for j in range(len(states)):
-	# 		string = str(i)+str(j)
-	# 		hidden_variables[index] = string
-	# 		index += 1
+
 	obs_towers = ['t1','t2','t3','t4']
-	# print "trans_p", trans_p
-	# print "emit_p", emit_p
+
 	viterbi(obs_towers, hidden_variables, start_p, trans_p, emit_p)
-	# print trans_p
+	print hidden_variables
 
 def viterbi(obs, states, start_p, trans_p, emit_p):
 	V = [{}]
 
 	for point in states[0]:
-		# V[0][point] = {"prob": start_p[point] * emit_p[point][obs[0]], "prev": None}
 		V[0][point] = {"prob": start_p[point], "prev": None}
-		# for st in states:
-	# 	V[0][st] = {"prob": start_p[st] * emit_p[st][obs[0]], "prev": None}
-	# print "emit_p[st][obs[0]]*start_p[st]", emit_p['43'][obs[0]]*start_p['43']
-	# print "V", V
-	# Run Viterbi when t > 0
-	# max_tr_prob = 0.0
+
 	for t in range(1, 11):
 		V.append({})
 		for st in states[t-1]:
-			if st in V[t-1]:
-				for state in states[t-1]:
-					if state in V[t-1]:
+			if st in trans_p[st]:
+				for state in trans_p[st]:
+					if state in states[t]:
 						if state not in V[t]:
 							V[t][state] = {"prob": 0.0, "prev": None}
 							V[t][state]["prob"] = V[t-1][st]["prob"]*trans_p[state][st]
@@ -81,77 +57,26 @@ def viterbi(obs, states, start_p, trans_p, emit_p):
 							if V[t-1][st]["prob"]*trans_p[state][st] > V[t][state]["prob"]:
 								V[t][state]["prob"] = V[t-1][st]["prob"]*trans_p[state][st]
 								V[t][state]["prev"] = st
-			# print trans_p['00']['22']
-			# print "max_tr_prob", max_tr_prob
-	print "V", V
-	# max_prob = -1
-	# final = ''
-	# level = 10
-	# print V[level]
-	# for item in V[level]:
-	# 	if max_prob < V[level][item]['prob']:
-	# 		max_prob = V[level][item]['prob']
-	# 		final = item
 
-	# path = []
-	# path.append(final)
-	# while True:
-	# 	if V[level][final]['prev'] == None:
-	# 		break
-	# 	new_final = V[level][final]['parent']
-	# 	path.append(new_final)
-	# 	level -= 1
-	# 	final = new_final
-	
-	# print('The path is ', path[::-1])
-	# 		for prev_st in states[t]:
-	# 			# print prev_st
-	# 			if prev_st in V[t-1]:
-	# 				if V[t-1][prev_st]["prob"] * trans_p[prev_st][st] == max_tr_prob:
+	max_point = ''
+	max_prob = -1
+	for point in V[10]:
+		if V[10][point]["prob"] > max_prob:
+			max_prob = V[10][point]["prob"]
+			max_point = point
 
-	# 					# max_prob = max(max_tr_prob * emit_p[st][tower] for tower in obs)
-	# 					# max_prob = max(max_tr_prob * emit_p[st][tower] for tower in obs)
-	# 					max_prob = max_tr_prob
+	probable_path = []
+	probable_path.append(max_point)
+	for i in range(10,0,-1):
+		max_point = V[i][max_point]["prev"]
+		probable_path.insert(0, max_point)
 
-	# 					print "max_prob", max_prob
-	# 					V[t][st] = {"prob": max_prob, "prev": prev_st}
-	# 					# print "st", st
-	# 					# print "prev_st", prev_st
-	# 					# print V[t][st]["prev"]v
-	# 					print "V[t][st]", V[t][st]
-	# 					break
-	# print "V", V
-	# # for line in dptable(V):
-	# # 	print line
-	# opt = []
-	# # The highest probability
-	# print V[-1].values()
-	# max_prob = max(value["prob"] for value in V[-1].values())
-	# # print V[-1].values()
-	# # print max_prob
-	# previous = None
-	# # Get most probable state and its backtrack
-	# for st, data in V[-1].items():
-	# 	if data["prob"] == max_prob:
-	# 		opt.append(st)
-	# 		previous = st
-	# 		# print opt
-	# 		break
-	# print len(V[0])
-	# print range(len(V) - 2, -1, -1)
-	# # Follow the backtrack till the first observation
-	# for t in range(len(V) - 2, -1, -1):
-	# 	opt.insert(0, V[t + 1][previous]["prev"])
-	# 	previous = V[t + 1][previous]["prev"]
-	# 	print 'The steps of states are ' + ' '.join(opt) + ' with highest probability of %s' % max_prob
+	path = ""
+	for point in probable_path:
+		path += "(" + str(int(point)/10) + "," + str(int(point)%10) + ")" + "->"
 
-def dptable(V):
-	# Print a table of steps from dictionary
-	yield " ".join(("%12d" % i) for i in range(len(V)))
-	for state in V[0]:
-		yield "%.7s: " % state + " ".join("%.7s" % ("%f" % v[state]["prob"]) for v in V)
-
-	# print "V", V
+	path = path[:-2]
+	print "The most likely trajectory of the robot for 11 time-steps:\n", path
 
 def initialize(states, obs):
 	start_p = {}
@@ -168,12 +93,9 @@ def initialize(states, obs):
 				else:
 					start_p[str(i)+str(j)] = 0.0
 	
-	# [emit1_p,emit2_p,emit3_p,emit4_p] = emit_p(states)
 	[emit_p, hidden_variables] = create_emit_p(states, obs)
 
-	# return [start_p,emit1_p,emit2_p,emit3_p,emit4_p]
 	return [start_p,emit_p,hidden_variables]
-
 
 def create_emit_p(states, obs):
 	emit_p = {}
@@ -182,10 +104,7 @@ def create_emit_p(states, obs):
 	d2 = 0.0
 	d3 = 0.0
 	d4 = 0.0
-	# emit1_p = {}
-	# emit2_p = {}
-	# emit3_p = {}
-	# emit4_p = {}
+
 	for init in range(11):
 		hidden_variables[init] = []
 
@@ -276,7 +195,7 @@ def neighbors(i, j, world):
 	
 	key = str(i) + str(j)
 	if key not in trans_p:
-		trans_p[key] = {}
+		trans_p[key] = collections.OrderedDict({})
 
 
 	for row in range(len(world)):
@@ -294,6 +213,7 @@ def neighbors(i, j, world):
 		trans_p[key][str(i) + str(j+1)] = (float(1.0/total))
 	if(down):
 		trans_p[key][str(i+1) + str(j)] = (float(1.0/total))
-
+	
+	print trans_p['00']
 if __name__ == "__main__":
 	main()
